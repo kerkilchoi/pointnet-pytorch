@@ -58,6 +58,8 @@ class ShapeNetDataset(data.Dataset):
                  root,
                  npoints=2500,
                  classification=False,
+                 segmentation=False,
+                 pose_norm_train=False,
                  class_choice=None,
                  split='train',
                  data_augmentation=True):
@@ -67,6 +69,8 @@ class ShapeNetDataset(data.Dataset):
         self.cat = {}
         self.data_augmentation = data_augmentation
         self.classification = classification
+        self.segmentation = segmentation
+        self.pose_norm_train = pose_norm_train
         self.seg_classes = {}
         
         with open(self.catfile, 'r') as f:
@@ -132,10 +136,14 @@ class ShapeNetDataset(data.Dataset):
         seg = torch.from_numpy(seg)
         cls = torch.from_numpy(np.array([cls]).astype(np.int64))
 
+        print("seg ", seg)
+
         if self.classification:
             return point_set, cls
-        else:
+        elif self.segmentation:
             return point_set, seg
+        else:
+            return point_set, torch.ones_like(seg)
 
     def __len__(self):
         return len(self.datapath)
