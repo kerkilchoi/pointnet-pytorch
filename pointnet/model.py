@@ -7,6 +7,7 @@ from torch.autograd import Variable
 import numpy as np
 import torch.nn.functional as F
 
+device = "mps" if torch.backends.mps.is_available() else "cpu"
 
 class STN3d(nn.Module):
     def __init__(self):
@@ -28,6 +29,8 @@ class STN3d(nn.Module):
 
     def forward(self, x):
         batchsize = x.size()[0]
+        print("batch ", x.size(), batchsize)
+        raise Exception
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
@@ -39,8 +42,7 @@ class STN3d(nn.Module):
         x = self.fc3(x)
 
         iden = Variable(torch.from_numpy(np.array([1,0,0,0,1,0,0,0,1]).astype(np.float32))).view(1,9).repeat(batchsize,1)
-        if x.is_cuda:
-            iden = iden.cuda()
+        iden = iden.to(device)
         x = x + iden
         x = x.view(-1, 3, 3)
         return x
@@ -78,8 +80,7 @@ class STNkd(nn.Module):
         x = self.fc3(x)
 
         iden = Variable(torch.from_numpy(np.eye(self.k).flatten().astype(np.float32))).view(1,self.k*self.k).repeat(batchsize,1)
-        if x.is_cuda:
-            iden = iden.cuda()
+        iden = iden.to(device)
         x = x + iden
         x = x.view(-1, self.k, self.k)
         return x
@@ -125,6 +126,7 @@ class PointNetfeat(nn.Module):
         else:
             x = x.view(-1, 1024, 1).repeat(1, 1, n_pts)
             return torch.cat([x, pointfeat], 1), trans, trans_feat
+
 
 class PointNetCls(nn.Module):
     def __init__(self, k=2, feature_transform=False):
@@ -174,12 +176,12 @@ class PointNetDenseCls(nn.Module):
         x = x.view(batchsize, n_pts, self.k)
         return x, trans, trans_feat
 
+
 def feature_transform_regularizer(trans):
     d = trans.size()[1]
     batchsize = trans.size()[0]
     I = torch.eye(d)[None, :, :]
-    if trans.is_cuda:
-        I = I.cuda()
+    I = I.to(device)
     loss = torch.mean(torch.norm(torch.bmm(trans, trans.transpose(2,1)) - I, dim=(1,2)))
     return loss
 
