@@ -1,3 +1,6 @@
+.DS_Store
+pyntcloud_plot_assets/
+*.pth
 .ipynb_checkpoints/
 data
 *.pyc
